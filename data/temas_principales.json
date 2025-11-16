@@ -1,0 +1,29 @@
+{
+  "temas": [
+    "Activos Intangibles",
+    "Instrumentos Financieros",
+    "Arrendamientos",
+    "Propiedades de Inversión",
+    "Deterioro de Activos",
+    "Provisiones",
+    "Ingresos",
+    "Impuesto a las Ganancias",
+    "Inventarios",
+    "Propiedades, Planta y Equipo"
+  ],
+  "material_extra": {
+    "Activos Intangibles": {
+      "disponible": true,
+      "recursos": [
+        "Libro: Contabilidad Superior - Cap. 8",
+        "Presentación: Intangibles_2024.pptx"
+      ]
+    },
+    "Instrumentos Financieros": {
+      "disponible": true,
+      "recursos": [
+        "Guía práctica: NIFF_9_Resumen.pdf"
+      ]
+    }
+  }
+}
