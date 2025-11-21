@@ -3,7 +3,7 @@ import os
 from typing import List, Dict, Optional
 from datetime import datetime
 import uuid
-from src.pdf_processor import normalize_term # Importar la función de normalización
+from src.pdf_processor import normalize_term # Importar la función de normalización de busquedas, de un archivo local
 
 class CacheManager:
     """
@@ -70,14 +70,14 @@ class CacheManager:
         print(f"[CACHÉ] ❌ No encontrado en caché para el término: '{term}'")
         return None
 
-    def save_search(self, term: str, nca_results: List, niff_results: List):
+    def save_search(self, term: str, rt_results: List, niif_nic_results: List):
         """
         Guarda una nueva búsqueda en el caché.
         
         Args:
             term (str): El término de búsqueda original.
-            nca_results (List): Lista de resultados de búsqueda para NCA.
-            niff_results (List): Lista de resultados de búsqueda para NIFF.
+            rt_results (List): Lista de resultados de búsqueda para Resolución Técnica (RT).
+            niif_nic_results (List): Lista de resultados de búsqueda para NIIF-NIC.
         """
         # Eliminar búsquedas antiguas del mismo término para mantener solo la más reciente
         normalized_term = normalize_term(term)
@@ -89,18 +89,17 @@ class CacheManager:
         new_search_entry = {
             "id": str(uuid.uuid4()),
             "termino": term,
-            "termino_original": term, # Mantener el término original para mostrar en UI
             "fecha": datetime.now().isoformat(),
             "resultados": {
-                "NCA": nca_results,
-                "NIFF": niff_results
+                "RT": rt_results,
+                "NIIF-NIC": niif_nic_results
             }
         }
         self.cache_data["busquedas"].append(new_search_entry)
         self._save_cache()
         print(f"[CACHÉ] ✅ Guardado para futuras búsquedas: '{term}'")
 
-    def get_history(self, limit: int = 10) -> List[Dict]:
+    def get_history(self, limit: int = 7) -> List[Dict]:
         """
         Retorna las últimas N búsquedas ordenadas por fecha (más recientes primero).
         
@@ -125,4 +124,3 @@ class CacheManager:
         self.cache_data = {"busquedas": []}
         self._save_cache()
         print("[CACHÉ] Historial de búsquedas limpiado.")
-

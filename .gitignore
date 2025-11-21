@@ -1,5 +1,9 @@
 # Gemini-specific files
 GEMINI.md
+data/niif_nic
+data/rt
+data/ubicacion programa contab. superior.pdf
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

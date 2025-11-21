@@ -1,0 +1,467 @@
+{
+  "temas": [
+    {
+      "punto": "1.1",
+      "tema": "Ubicación de la asignatura en el proceso contable",
+      "fuentes": [
+        {
+          "norma": "PDF de la catedra \"Ubicación de la materia en el proceso contable\"",
+          "ubicacion": "Pag 3 \"fundamentos\"",
+          "pdf": "Ubicacion de la materia en el proceso contable.pdf"
+        }
+      ],
+      "extra": ""
+    },
+    {
+      "punto": "1.2",
+      "tema": "Objetivo principal de la asignatura.",
+      "fuentes": [
+        {
+          "norma": "Programa de la asignatura",
+          "ubicacion": "",
+          "pdf": ""
+        }
+      ],
+      "extra": ""
+    },
+    {
+      "punto": "1.3",
+      "tema": "Modelo contable en el marco de las NIIF.",
+      "fuentes": [
+        {
+          "norma": "Marco conceptual para información financiera",
+          "ubicacion": "Pag 25 en adelante \"medición de los elementos de los estados financieros\"",
+          "pdf": "MARCO_CONCEPTUAL NIIF.pdf"
+        }
+      ],
+      "extra": "A modo de comparación: RT 16, punto 6."
+    },
+    {
+      "punto": "1.4",
+      "tema": "La unidad de medida en el ámbito nacional e internacional. Diferencias.",
+      "fuentes": [
+        {
+          "norma": "RT 59",
+          "ubicacion": "párrafo 97 hasta 100",
+          "pdf": "Resolucion-Tecnica-N°-59-TO-RT-54-NUA.pdf"
+        },
+        {
+          "norma": "NIC 29",
+          "ubicacion": "párrafo 176 hasta 200",
+          "pdf": "NIC-29.pdf"
+        }
+      ],
+      "extra": "Material de clase (diapositivas)"
+    },
+    {
+      "punto": "1.5",
+      "tema": "Elementos de los estados contables. Concepto de Medición al inicio y al cierre.",
+      "fuentes": [
+        {
+          "norma": "RT 16",
+          "ubicacion": "Punto 4: elementos de los EC, Punto 5: reconocimiento y medición",
+          "pdf": "RT 16.pdf"
+        }
+      ],
+      "extra": "A modo de comparación: \"marco conceptual NIIF\""
+    },
+    {
+      "punto": "1.6",
+      "tema": "Hechos contingentes y Hechos posteriores al cierre",
+      "fuentes": [
+        {
+          "norma": "RT 59",
+          "ubicacion": "Hechos posteriores: Párrafo 96, Hechos contingentes: Párrafo 143",
+          "pdf": "Resolucion-Tecnica-N°-59-TO-RT-54-NUA.pdf"
+        }
+      ],
+      "extra": "A modo de comparación: NIC 10, NIC 37"
+    },
+    {
+      "punto": "1.7",
+      "tema": "Modificación a la información de ejercicios anteriores",
+      "fuentes": [
+        {
+          "norma": "RT 59",
+          "ubicacion": "Párrafo 66 hasta 70, Párrafo 92, Párrafo 694",
+          "pdf": "Resolucion-Tecnica-N°-59-TO-RT-54-NUA.pdf"
+        }
+      ],
+      "extra": "A modo de comparación: NIC 8"
+    },
+    {
+      "punto": "2.1",
+      "tema": "Casos especiales 1: desembolsos posteriores en los bienes de uso",
+      "fuentes": [
+        {
+          "norma": "RT 59",
+          "ubicacion": "Desembolsos posteriores: párrafo 317, Previsiones: párrafo 487",
+          "pdf": "Resolucion-Tecnica-N°-59-TO-RT-54-NUA.pdf"
+        }
+      ],
+      "extra": "Diapositivas de clase, Informe CECYT N°30, A modo de comparación: NIC 16"
+    },
+    {
+      "punto": "2.2",
+      "tema": "Casos especiales 2: a) bienes de uso: costo de desmantelamiento y restauración ambiental (ORA) b) activos intangibles",
+      "fuentes": [
+        {
+          "norma": "RT 59",
+          "ubicacion": "Costos de desmantelamiento (ORA): párrafo 316, Activos intangibles: párrafo 389",
+          "pdf": "Resolucion-Tecnica-N°-59-TO-RT-54-NUA.pdf"
+        }
+      ],
+      "extra": "Diapositivas de clase/material de apoyo profe Ituarte, Activos intangibles a modo de comparación: NIC 38"
+    },
+    {
+      "punto": "3.1",
+      "tema": "Valores históricos y valores corrientes",
+      "fuentes": [
+        {
+          "norma": "RT 59",
+          "ubicacion": "valores históricos: párrafo 102, Valores corrientes: 113",
+          "pdf": "Resolucion-Tecnica-N°-59-TO-RT-54-NUA.pdf"
+        },
+        {
+          "norma": "RT 16",
+          "ubicacion": "punto 6.2",
+          "pdf": "RT 16.pdf"
+        }
+      ],
+      "extra": "Material de clase."
+    },
+    {
+      "punto": "3.2",
+      "tema": "Valor razonable y otras mediciones derivadas del valor razonable",
+      "fuentes": [
+        {
+          "norma": "RT 59",
+          "ubicacion": "Párrafo 117",
+          "pdf": "Resolucion-Tecnica-N°-59-TO-RT-54-NUA.pdf"
+        }
+      ],
+      "extra": "A modo de comparación: NIIF 13"
+    },
+    {
+      "punto": "3.3",
+      "tema": "Comparación con el valor recuperable de los activos",
+      "fuentes": [
+        {
+          "norma": "RT 59",
+          "ubicacion": "Párrafo 145",
+          "pdf": "Resolucion-Tecnica-N°-59-TO-RT-54-NUA.pdf"
+        }
+      ],
+      "extra": ""
+    },
+    {
+      "punto": "4.2",
+      "tema": "Transacciones con los propietarios y resultados acumulados.",
+      "fuentes": [
+        {
+          "norma": "RT 59",
+          "ubicacion": "Párrafo 502, Párrafo 642",
+          "pdf": "Resolucion-Tecnica-N°-59-TO-RT-54-NUA.pdf"
+        }
+      ],
+      "extra": "A modo de comparación: NIIF 18"
+    },
+    {
+      "punto": "4.3",
+      "tema": "Contabilización del impuesto a las ganancias.",
+      "fuentes": [
+        {
+          "norma": "RT 59",
+          "ubicacion": "Impuesto a la ganancia: Párrafo 571, Impuesto diferido: 578",
+          "pdf": "Resolucion-Tecnica-N°-59-TO-RT-54-NUA.pdf"
+        }
+      ],
+      "extra": "\"Impuesto Diferido\" Gil, Jorge José, A modo de comparación: NIC 12"
+    },
+    {
+      "punto": "4.4",
+      "tema": "Modelo de la revaluación en los Bienes de uso.",
+      "fuentes": [
+        {
+          "norma": "RT 59",
+          "ubicacion": "Párrafo 322",
+          "pdf": "Resolucion-Tecnica-N°-59-TO-RT-54-NUA.pdf"
+        }
+      ],
+      "extra": "Material de clase, A modo de comparación: NIC 16 párrafo 31"
+    },
+    {
+      "punto": "4.5",
+      "tema": "Activos biológicos",
+      "fuentes": [
+        {
+          "norma": "RT 59",
+          "ubicacion": "Párrafo 1021",
+          "pdf": "Resolucion-Tecnica-N°-59-TO-RT-54-NUA.pdf"
+        }
+      ],
+      "extra": "A modo de comparación: NIC 41"
+    },
+    {
+      "punto": "4.6",
+      "tema": "Reconocimiento de los ingresos por actividades ordinarias",
+      "fuentes": [
+        {
+          "norma": "RT 59",
+          "ubicacion": "Párrafo 522",
+          "pdf": "Resolucion-Tecnica-N°-59-TO-RT-54-NUA.pdf"
+        }
+      ],
+      "extra": "A modo de comparación: NIIF 15"
+    },
+    {
+      "punto": "4.7",
+      "tema": "Arrendamientos",
+      "fuentes": [
+        {
+          "norma": "RT 59",
+          "ubicacion": "párrafo 532",
+          "pdf": "Resolucion-Tecnica-N°-59-TO-RT-54-NUA.pdf"
+        },
+        {
+          "norma": "NIIF 16",
+          "ubicacion": "",
+          "pdf": "NIIF_16.pdf"
+        }
+      ],
+      "extra": "Material de clase, Informe CECYT n°27"
+    },
+    {
+      "punto": "4.8",
+      "tema": "Cuentas a cobrar, inversiones y cuentas a pagar",
+      "fuentes": [
+        {
+          "norma": "RT 59",
+          "ubicacion": "Cuentas a cobrar: párrafo 236, Inversiones: párrafo 212 y 436, Cuentas a pagar: párrafo 457",
+          "pdf": "Resolucion-Tecnica-N°-59-TO-RT-54-NUA.pdf"
+        }
+      ],
+      "extra": "Informe CECYT N°21, A modo de comparación: NIIF 9"
+    },
+    {
+      "punto": "4.9",
+      "tema": "Compromisos que generan pérdidas (contratos onerosos) y pérdidas operativas futuras.",
+      "fuentes": [
+        {
+          "norma": "RT 59",
+          "ubicacion": "Párrafo 527",
+          "pdf": "Resolucion-Tecnica-N°-59-TO-RT-54-NUA.pdf"
+        }
+      ],
+      "extra": "A modo de comparación: NIC 37 párrafo 63 y 66"
+    },
+    {
+      "punto": "5.1",
+      "tema": "Información contable en general.",
+      "fuentes": [
+        {
+          "norma": "Código civil y comercial de la Nación",
+          "ubicacion": "articulo 320",
+          "pdf": ""
+        },
+        {
+          "norma": "Ley general de sociedades",
+          "ubicacion": "articulo 61",
+          "pdf": ""
+        }
+      ],
+      "extra": ""
+    },
+    {
+      "punto": "5.2",
+      "tema": "Estados contables.",
+      "fuentes": [
+        {
+          "norma": "RT 59",
+          "ubicacion": "Párrafo 1, 10, 20, 32, 33, 55, 58-65, 66-70, 96, 31 e), art 57",
+          "pdf": "Resolucion-Tecnica-N°-59-TO-RT-54-NUA.pdf"
+        }
+      ],
+      "extra": "Material de clase"
+    },
+    {
+      "punto": "5.3",
+      "tema": "Estado de situación patrimonial o estado de situación financiera.",
+      "fuentes": [
+        {
+          "norma": "RT 59",
+          "ubicacion": "párrafo 607",
+          "pdf": "Resolucion-Tecnica-N°-59-TO-RT-54-NUA.pdf"
+        },
+        {
+          "norma": "NIC 1",
+          "ubicacion": "párrafo 54",
+          "pdf": "NIC_1.pdf"
+        }
+      ],
+      "extra": "\"Contabilidad Superior\" Fowler Newton, Enrique"
+    },
+    {
+      "punto": "5.4",
+      "tema": "Estado de resultados o Estado de resultados del período y otros resultados integrales.",
+      "fuentes": [
+        {
+          "norma": "RT 59",
+          "ubicacion": "párrafo 628",
+          "pdf": "Resolucion-Tecnica-N°-59-TO-RT-54-NUA.pdf"
+        },
+        {
+          "norma": "NIC 1",
+          "ubicacion": "párrafo 81A",
+          "pdf": "NIC_1.pdf"
+        }
+      ],
+      "extra": "\"Contabilidad Superior\" Fowler Newton, Enrique"
+    },
+    {
+      "punto": "5.5",
+      "tema": "Estado de evolución del patrimonio neto o Estado de cambios del patrimonio",
+      "fuentes": [
+        {
+          "norma": "RT 59",
+          "ubicacion": "párrafo 624",
+          "pdf": "Resolucion-Tecnica-N°-59-TO-RT-54-NUA.pdf"
+        },
+        {
+          "norma": "NIC 1",
+          "ubicacion": "párrafo 106",
+          "pdf": "NIC_1.pdf"
+        }
+      ],
+      "extra": "\"Contabilidad Superior\" Fowler Newton, Enrique"
+    },
+    {
+      "punto": "5.6",
+      "tema": "Estado de flujos de efectivo",
+      "fuentes": [
+        {
+          "norma": "RT 59",
+          "ubicacion": "párrafo 649",
+          "pdf": "Resolucion-Tecnica-N°-59-TO-RT-54-NUA.pdf"
+        },
+        {
+          "norma": "NIC 7",
+          "ubicacion": "toda la ley habla del estado",
+          "pdf": "MARCO_CONCEPTUAL NIIF.pdf"
+        }
+      ],
+      "extra": "\"Contabilidad Superior\" Fowler Newton, Enrique - Informe CECYT N° 29"
+    },
+    {
+      "punto": "5.7",
+      "tema": "Otra Información complementaria.",
+      "fuentes": [
+        {
+          "norma": "RT 59",
+          "ubicacion": "Párrafo 673",
+          "pdf": "Resolucion-Tecnica-N°-59-TO-RT-54-NUA.pdf"
+        }
+      ],
+      "extra": "NIC 1"
+    },
+    {
+      "punto": "5.8",
+      "tema": "Estados contables para entes sin fines de lucro (RT 54)",
+      "fuentes": [
+        {
+          "norma": "RT 59",
+          "ubicacion": "Párrafo 709",
+          "pdf": "Resolucion-Tecnica-N°-59-TO-RT-54-NUA.pdf"
+        }
+      ],
+      "extra": "Alguna NIC/NIIF??"
+    },
+    {
+      "punto": "6.1",
+      "tema": "Principales diferencias con las Normas contables argentinas.",
+      "fuentes": [
+        {
+          "norma": "NIIF 1",
+          "ubicacion": "(todo el material)",
+          "pdf": "MARCO_CONCEPTUAL NIIF.pdf"
+        }
+      ],
+      "extra": "Material de clase (diapositivas)"
+    },
+    {
+      "punto": "6.2",
+      "tema": "Activos no corrientes mantenidos para la venta y exposición de los resultados por operaciones descontinuadas.",
+      "fuentes": [
+        {
+          "norma": "NIIF 5",
+          "ubicacion": "(todo el material)",
+          "pdf": "NIIF_5.pdf"
+        }
+      ],
+      "extra": "A modo de comparación: RT 59, párrafo 418"
+    },
+    {
+      "punto": "6.3",
+      "tema": "Provisiones (reconocimiento, medición y exposición)",
+      "fuentes": [
+        {
+          "norma": "NIC 37",
+          "ubicacion": "(todo el material)",
+          "pdf": "NIC_37.pdf"
+        }
+      ],
+      "extra": "A modo de comparación: RT 59, párrafo 487"
+    },
+    {
+      "punto": "7.1",
+      "tema": "Instrumentos financieros (reconocimiento, medición y exposición)",
+      "fuentes": [
+        {
+          "norma": "NIC 32",
+          "ubicacion": "(todo el material)",
+          "pdf": "MARCO_CONCEPTUAL NIIF.pdf"
+        }
+      ],
+      "extra": "A modo de comparación: RT 59 \"Créditos, Deudas e Inversiones\""
+    },
+    {
+      "punto": "7.2",
+      "tema": "componentes del patrimonio (reconocimiento, medición y exposición)",
+      "fuentes": [
+        {
+          "norma": "NIC 32",
+          "ubicacion": "NIIF para las PYMES: Sección 22",
+          "pdf": "MARCO_CONCEPTUAL NIIF.pdf"
+        },
+        {
+          "norma": "NIIF para las PYMES",
+          "ubicacion": "",
+          "pdf": "MARCO_CONCEPTUAL NIIF.pdf"
+        }
+      ],
+      "extra": "A modo de comparación: RT 59 \"Patrimonio neto\""
+    },
+    {
+      "punto": "8",
+      "tema": "Informes de sostenibilidad.",
+      "fuentes": [
+        {
+          "norma": "RT 36",
+          "ubicacion": "(todo el material)",
+          "pdf": "RESOLUCIÓN_TÉCNICA_Nº_36.pdf"
+        },
+        {
+          "norma": "NIIF de sostenibilidad 1 (S1)",
+          "ubicacion": "",
+          "pdf": "MARCO_CONCEPTUAL NIIF.pdf"
+        },
+        {
+          "norma": "NIIF de sostenibilidad 2 (S2)",
+          "ubicacion": "",
+          "pdf": "MARCO_CONCEPTUAL NIIF.pdf"
+        }
+      ],
+      "extra": "Material de clase"
+    }
+  ]
+}

@@ -2,18 +2,14 @@ import fitz  # PyMuPDF
 import unicodedata
 import sys
 import os
-from typing import List, Dict, Optional
-from rapidfuzz import fuzz
+import collections
+from typing import List, Dict, Optional, Callable, Generator
 
 # Para el manejo de errores en la UI (messagebox)
-# Aunque messagebox es parte de tkinter, lo importamos aquí para el manejo de errores críticos
-# que podrían ocurrir antes de que la UI esté completamente inicializada.
-# En un entorno real, esto podría ser un logger o un mecanismo de reporte de errores.
 try:
     import tkinter as tk
     from tkinter import messagebox
 except ImportError:
-    # Fallback si tkinter no está disponible (ej. en un entorno sin GUI)
     class MockMessagebox:
         def showerror(self, title, message):
             print(f"ERROR: {title} - {message}")
@@ -37,14 +33,19 @@ class PDFProcessor:
     """
     def __init__(self, pdf_path: str):
         """
-        Inicializa el procesador con la ruta del PDF.
-        Abre el documento PDF y maneja posibles errores.
+        Inicializa el procesador con la ruta del PDF y analiza los estilos de fuente.
         """
         self.pdf_path = pdf_path
         self.doc: Optional[fitz.Document] = None
+        self.toc: List = []
+        self.body_font_size: float = 10.0  # Un default razonable
+
         try:
             self.doc = fitz.open(self.pdf_path)
+            self.toc = self.doc.get_toc()
             print(f"[INFO] Cargando PDF: {os.path.basename(pdf_path)} - {self.doc.page_count} páginas")
+            print(f"[INFO] Tabla de Contenidos (TOC) encontrada con {len(self.toc)} entradas.")
+            self._analyze_font_styles()
         except FileNotFoundError:
             messagebox.showerror("Error de Archivo", f"No se encontró el archivo PDF: {self.pdf_path}")
             sys.exit(1)
@@ -52,192 +53,240 @@ class PDFProcessor:
             messagebox.showerror("Error de PDF", f"No se pudo leer el PDF '{self.pdf_path}': {str(e)}")
             sys.exit(1)
 
+    def _analyze_font_styles(self, sample_pages: int = 10):
+        """
+        Analiza las primeras N páginas para determinar el tamaño de fuente del cuerpo principal.
+        """
+        if not self.doc:
+            return
+
+        font_size_counter = collections.Counter()
+        num_pages_to_scan = min(sample_pages, self.doc.page_count)
+
+        for page_num in range(num_pages_to_scan):
+            page = self.doc.load_page(page_num)
+            page_data = page.get_text("dict")
+            for block in page_data.get("blocks", []):
+                if block['type'] == 0:
+                    for line in block.get("lines", []):
+                        for span in line.get("spans", []):
+                            size = round(span.get('size', 0), 2)
+                            count = len(span.get('text', ''))
+                            if size > 0 and count > 0:
+                                font_size_counter[size] += count
+        
+        if font_size_counter:
+            self.body_font_size = font_size_counter.most_common(1)[0][0]
+            print(f"[INFO] Tamaño de fuente principal detectado para '{os.path.basename(self.pdf_path)}': {self.body_font_size}pt")
+        else:
+            print(f"[ADVERTENCIA] No se pudo determinar el tamaño de fuente principal para '{os.path.basename(self.pdf_path)}'. Usando default: {self.body_font_size}pt")
+
     def get_total_pages(self) -> int:
         """
         Retorna el número total de páginas del PDF.
         """
-        if self.doc:
-            return self.doc.page_count
-        return 0
+        return self.doc.page_count if self.doc else 0
 
     def extract_text_from_page(self, page_num: int) -> str:
         """
         Extrae texto de una página específica del PDF.
-        Las páginas son 0-indexadas en PyMuPDF, pero la UI las mostrará 1-indexadas.
         """
         if self.doc and 0 <= page_num < self.doc.page_count:
             page = self.doc.load_page(page_num)
             return page.get_text("text")
         return ""
     
-    def _extract_context(self, text: str, start_pos: int, end_pos: int, buffer: int = 75) -> str:
-        """
-        Extrae un fragmento de texto (contexto) alrededor de una coincidencia.
-        """
-        start = max(0, start_pos - buffer)
-        end = min(len(text), end_pos + buffer)
-        return text[start:end].replace('\n', ' ').strip() # Reemplazar saltos de línea para mejor visualización
-
-    def _search_in_page(self, page_num: int, term: str, fuzzy: bool = True) -> Optional[Dict]:
-        """
-        Busca un término en una página específica y retorna los resultados.
-        Método auxiliar para search_term y search_term_progressive.
-        """
-        page_text = self.extract_text_from_page(page_num)
-        if not page_text:
-            return None
-
-        normalized_page_text = normalize_term(page_text)
+    def _search_toc(self, term: str) -> Generator[Dict, None, None]:
+        """Busca el término en la Tabla de Contenidos del documento."""
         normalized_term = normalize_term(term)
+        if not normalized_term:
+            return
+
+        for level, title, page in self.toc:
+            normalized_title = normalize_term(title)
+            if normalized_term in normalized_title:
+                yield {
+                    'page': page,
+                    'contexts': [f"[TOC] {title}"],
+                    'matches': 1,
+                    'type': 'title'
+                }
+
+    def _search_in_page(self, page_num: int, term: str) -> Optional[Dict]:
+        """
+        Busca un término en una página específica, usando análisis dinámico de fuentes
+        para identificar títulos y subtítulos (búsqueda heurística).
+        """
+        if not self.doc or not (0 <= page_num < self.doc.page_count):
+            return None
         
-        matches_on_page = []
-        occurrences_count = 0
+        page = self.doc.load_page(page_num)
+        page_data = page.get_text("dict")
         
-        if not normalized_term: # Evitar buscar términos vacíos
+        normalized_term = normalize_term(term)
+        if not normalized_term:
             return None
 
-        # Límite de 3 coincidencias por página para mostrar contexto.
-        # El conteo total de coincidencias 'matches' en el diccionario aún puede ser mayor.
-        max_context_matches = 3 
+        contexts = []
+        occurrences_count = 0
+        max_context_matches = 3
+        
+        # Heurísticas más estrictas para identificar títulos
+        TITLE_FONT_SIZE_MULTIPLIER = 1.20  # Al menos 20% más grande que el cuerpo
+        TITLE_MAJORITY_THRESHOLD = 0.8     # 80% de la línea debe ser de tipo título
+        TITLE_MAX_LENGTH = 150
 
-        if fuzzy:
-            # Buscar coincidencias difusas
-            # Iteramos para encontrar múltiples ocurrencias y sus contextos
-            i = 0
-            while i < len(normalized_page_text) and len(matches_on_page) < max_context_matches:
-                # Busca el término exacto normalizado como primera opción.
-                start_idx_normalized = normalized_page_text.find(normalized_term, i)
-                if start_idx_normalized != -1:
-                    # Encontró el término exacto normalizado
-                    match_in_normalized = True
-                    target_normalized = normalized_term
-                    current_match_start = start_idx_normalized
-                    current_match_end = start_idx_normalized + len(normalized_term)
-                else:
-                    # Si no se encuentra un match exacto, proceder con fuzzy matching en substrings del original.
-                    # Esto es computacionalmente intensivo, pero necesario para `partial_ratio` sin posición.
-                    # Para evitar el exceso de cómputo, solo revisamos substrings de longitud similar.
-                    
-                    # Intentar encontrar si una subcadena del texto de la página
-                    # coincide "fuzzily" con el término normalizado.
-                    
-                    # Iterar sobre las posibles posiciones de inicio del término.
-                    # Considerar un rango de longitudes para el substring a comparar, 
-                    # centrado en la longitud del término normalizado.
-                    # Ejemplo: longitud del término +/- 20%
-                    
-                    len_norm_term = len(normalized_term)
-                    min_len_check = max(1, int(len_norm_term * 0.8))
-                    max_len_check = int(len_norm_term * 1.2) + 1
-                    
-                    best_ratio_for_fuzzy_sub = 0
-                    fuzzy_sub_start = -1
-                    fuzzy_sub_end = -1
-                    
-                    for k in range(i, len(normalized_page_text)):
-                        for sub_len in range(min_len_check, max_len_check):
-                            if k + sub_len > len(normalized_page_text):
-                                continue
-                            
-                            subtext_to_compare = normalized_page_text[k:k+sub_len]
-                            current_ratio = fuzz.partial_ratio(subtext_to_compare, normalized_term)
-                            
-                            if current_ratio > best_ratio_for_fuzzy_sub:
-                                best_ratio_for_fuzzy_sub = current_ratio
-                                fuzzy_sub_start = k
-                                fuzzy_sub_end = k + sub_len
-                    
-                    if best_ratio_for_fuzzy_sub >= 80 and fuzzy_sub_start != -1:
-                        match_in_normalized = True
-                        target_normalized = normalized_page_text[fuzzy_sub_start:fuzzy_sub_end]
-                        current_match_start = fuzzy_sub_start
-                        current_match_end = fuzzy_sub_end
-                    else:
-                        match_in_normalized = False
+        for block in page_data.get("blocks", []):
+            if block['type'] == 0:  # 0 for text blocks
+                for line in block.get("lines", []):
+                    title_char_count = 0
+                    total_char_count = 0
+                    line_text_parts = []
 
-                if match_in_normalized:
-                    occurrences_count += 1
-                    if len(matches_on_page) < max_context_matches:
-                        # Hay que encontrar la posición en el texto original. Esto es un hack.
-                        # Asumimos que la posición en el texto normalizado se traslada directamente.
-                        context_start = current_match_start
-                        context_end = current_match_end
+                    for span in line.get("spans", []):
+                        span_text = span.get('text', '')
+                        line_text_parts.append(span_text)
+                        char_count = len(span_text)
+                        total_char_count += char_count
+
+                        is_bold = "bold" in span.get('font', '').lower() or (span.get('flags', 0) & 16)
+                        is_large = span.get('size', 0) > (self.body_font_size * TITLE_FONT_SIZE_MULTIPLIER)
+                        if is_bold or is_large:
+                            title_char_count += char_count
+                    
+                    full_line_text = "".join(line_text_parts).strip()
+                    
+                    is_title = (
+                        total_char_count > 0 and
+                        (title_char_count / total_char_count) >= TITLE_MAJORITY_THRESHOLD and
+                        not full_line_text.endswith('.') and
+                        len(full_line_text) < TITLE_MAX_LENGTH
+                    )
+                    
+                    if is_title:
+                        normalized_line_text = normalize_term(full_line_text)
+                        line_occurrences = normalized_line_text.count(normalized_term)
                         
-                        context = self._extract_context(page_text, context_start, context_end)
-                        matches_on_page.append({
-                            'context': context
-                        })
-                    
-                    # Avanzar el índice para no detectar la misma coincidencia inmediatamente
-                    i = current_match_end # Avanzar al final del match encontrado
-                else:
-                    # Si no hubo match (ni exacto ni fuzzy), avanzar un poco para evitar loops infinitos
-                    # Si el término es muy corto, avanzar 1. Si es más largo, avanzar por su longitud.
-                    advance = max(1, len(normalized_term) // 2)
-                    i += advance
-
-        else: # Búsqueda exacta (case-insensitive, accent-insensitive)
-            # Find all occurrences of the normalized term in the normalized page text
-            start_idx_normalized = 0
-            while True:
-                start_idx_normalized = normalized_page_text.find(normalized_term, start_idx_normalized)
-                if start_idx_normalized == -1:
-                    break
-                
-                occurrences_count += 1
-                if len(matches_on_page) < max_context_matches:
-                    end_idx_normalized = start_idx_normalized + len(normalized_term)
-                    context = self._extract_context(page_text, start_idx_normalized, end_idx_normalized)
-                    matches_on_page.append({
-                        'context': context
-                    })
-                
-                start_idx_normalized += len(normalized_term)
+                        if line_occurrences > 0:
+                            occurrences_count += line_occurrences
+                            if len(contexts) < max_context_matches and full_line_text not in contexts:
+                                contexts.append(f"[TÍTULO] {full_line_text}")
 
         if occurrences_count > 0:
             return {
-                'page': page_num + 1,  # Las páginas son 1-indexadas para el usuario
-                'contexts': [m['context'] for m in matches_on_page], # List of contexts
-                'matches': occurrences_count
+                'page': page_num + 1,
+                'contexts': contexts,
+                'matches': occurrences_count,
+                'type': 'title'
+            }
+        return None
+
+    def _search_full_text_in_page(self, page_num: int, term: str) -> Optional[Dict]:
+        """Busca un término en el texto completo de una página (fallback)."""
+        if not self.doc or not (0 <= page_num < self.doc.page_count):
+            return None
+            
+        page = self.doc.load_page(page_num)
+        normalized_term = normalize_term(term)
+        if not normalized_term:
+            return None
+
+        contexts = []
+        matches_count = 0
+        max_context_matches = 3
+        context_radius = 75
+
+        text_blocks = page.get_text("blocks")
+        for block in text_blocks:
+            if block[6] == 0: # block_type = 0 for text
+                block_text = block[4]
+                normalized_block_text = normalize_term(block_text)
+                
+                if normalized_term in normalized_block_text:
+                    matches_count += normalized_block_text.count(normalized_term)
+                    
+                    if len(contexts) < max_context_matches:
+                        try:
+                            # Posición aproximada para el contexto
+                            pos = normalized_block_text.find(normalized_term)
+                            start = max(0, pos - context_radius)
+                            end = min(len(block_text), pos + len(normalized_term) + context_radius)
+                            context = block_text[start:end].strip().replace('\n', ' ')
+                            if context and context not in contexts:
+                                contexts.append(f"...{context}...")
+                        except Exception:
+                            continue
+        
+        if matches_count > 0:
+            return {
+                'page': page_num + 1,
+                'contexts': contexts,
+                'matches': matches_count,
+                'type': 'text'
             }
         return None
 
     def search_term(self, term: str, fuzzy: bool = True) -> List[Dict]:
         """
-        Busca un término en todo el PDF.
+        Busca un término en todo el PDF. Consume el generador de búsqueda progresiva.
+        """
+        return list(self.search_term_progressive(term, lambda p: None))
+
+    def _search_full_text_progressive(self, term: str, progress_callback: Callable[[float], None]) -> Generator[Dict, None, None]:
+        """Generador para la búsqueda de texto completo (fallback)."""
+        total_pages = self.get_total_pages()
+        for page_num in range(total_pages):
+            result = self._search_full_text_in_page(page_num, term)
+            if result:
+                yield result
+            progress = ((page_num + 1) / total_pages) * 100
+            progress_callback(progress)
+
+    def search_term_progressive(self, term: str, progress_callback: Callable[[float], None]) -> Generator[Dict, None, None]:
+        """
+        Busca un término en el PDF de forma progresiva y por fases:
+        1. Tabla de Contenidos (TOC).
+        2. Búsqueda heurística de títulos.
+        3. Búsqueda de texto completo (si no se encontraron títulos).
+        """
+        total_pages = self.get_total_pages()
+        if total_pages == 0:
+            progress_callback(100.0)
+            return
+
+        found_title_match = False
+        processed_pages = set()
         
-        Args:
-            term (str): El término a buscar.
-            fuzzy (bool): Si la búsqueda debe ser difusa.
+        # --- Fase 1: Búsqueda en TOC ---
+        for result in self._search_toc(term):
+            if not found_title_match:
+                print(f"[INFO] Encontradas coincidencias de '{term}' en la Tabla de Contenidos.")
+                found_title_match = True
             
-        Returns:
-            List[Dict]: Lista de SearchResult con estructura:
-            {
-                'page': int,
-                'contexts': List[str] (hasta 3 contextos alrededor del término),
-                'matches': int (número total de coincidencias en esa página)
-            }
-        """
-        all_results: List[Dict] = []
-        total_pages = self.get_total_pages()
+            page_index = result['page'] - 1 # TOC es 1-based
+            if 0 <= page_index < total_pages:
+                processed_pages.add(page_index)
+            yield result
+        
+        # --- Fase 2: Búsqueda Heurística de Títulos ---
+        print(f"[INFO] Buscando '{term}' con heurística de títulos...")
         for page_num in range(total_pages):
-            result = self._search_in_page(page_num, term, fuzzy)
-            if result:
-                all_results.append(result)
-        return all_results
+            if page_num in processed_pages:
+                progress = ((page_num + 1) / total_pages) * 100
+                progress_callback(progress)
+                continue
 
-    def search_term_progressive(self, term: str, callback) -> None:
-        """
-        Busca un término en todo el PDF de forma progresiva, llamando a un callback
-        por cada página procesada que contenga resultados.
-
-        Args:
-            term (str): El término a buscar.
-            callback (callable): Función a llamar con (page_num, result) si se encuentran coincidencias.
-                                 'result' es el mismo diccionario retornado por _search_in_page.
-        """
-        total_pages = self.get_total_pages()
-        for page_num in range(total_pages):
-            result = self._search_in_page(page_num, term, True) # Siempre fuzzy para progresiva? O configurable?
+            result = self._search_in_page(page_num, term)
             if result:
-                callback(page_num + 1, result) # Manda page_num 1-indexado
+                if not found_title_match:
+                    print(f"[INFO] Encontradas coincidencias de '{term}' en títulos del documento.")
+                    found_title_match = True
+                yield result
+            
+            progress = ((page_num + 1) / total_pages) * 100
+            progress_callback(progress)
+
+        # --- Fase 3: Búsqueda de Texto Completo (Fallback) ---
+        if not found_title_match:
+            print(f"[INFO] No se encontraron títulos para '{term}'. Realizando búsqueda de texto completo como fallback.")
+            yield from self._search_full_text_progressive(term, progress_callback)

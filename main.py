@@ -3,33 +3,32 @@ from src.ui import BuscadorNormasUI
 import sys
 import os
 
-def check_pdfs_exist():
+def check_pdf_directories_exist():
     """
-    Verifica que los archivos PDF necesarios (NCA.pdf y NIFF.pdf) existan en la carpeta 'data/'.
-    Si alguno no se encuentra, muestra un mensaje de error y sale de la aplicación.
+    Verifica que los directorios 'data/rt' y 'data/niif_nic' existan y no estén vacíos.
     """
-    nca_path = 'data/NCA.pdf'
-    niff_path = 'data/NIFF.pdf'
+    rt_dir = 'data/rt'
+    niif_nic_dir = 'data/niif_nic'
+    dirs_to_check = [rt_dir, niif_nic_dir]
+    
+    error_messages = []
 
-    if not os.path.exists(nca_path):
-        print(f"ERROR: Falta el archivo data/NCA.pdf. Por favor, colócalo en la carpeta 'data/'.")
-        # Usar messagebox si tkinter ya está inicializado, de lo contrario, solo print y exit.
-        try:
-            root = tk.Tk()
-            root.withdraw() # Ocultar la ventana principal
-            tk.messagebox.showerror("Error de Archivo", f"Falta el archivo {nca_path}. Por favor, colócalo en la carpeta 'data/'.")
-            root.destroy()
-        except:
-            pass
-        sys.exit(1)
-    if not os.path.exists(niff_path):
-        print(f"ERROR: Falta el archivo data/NIFF.pdf. Por favor, colócalo en la carpeta 'data/'.")
+    for directory in dirs_to_check:
+        if not os.path.isdir(directory):
+            error_messages.append(f"El directorio '{directory}' no existe. Por favor, créalo.")
+        elif not any(fname.lower().endswith('.pdf') for fname in os.listdir(directory)):
+            error_messages.append(f"El directorio '{directory}' no contiene ningún archivo PDF.")
+
+    if error_messages:
+        full_error_message = "\n".join(error_messages)
+        print(f"ERROR: {full_error_message}")
         try:
             root = tk.Tk()
             root.withdraw()
-            tk.messagebox.showerror("Error de Archivo", f"Falta el archivo {niff_path}. Por favor, colócalo en la carpeta 'data/'.")
+            tk.messagebox.showerror("Error de Configuración", full_error_message)
             root.destroy()
-        except:
+        except tk.TclError:
+            # Si hay problemas con Tkinter, la salida por consola es suficiente.
             pass
         sys.exit(1)
 
@@ -38,7 +37,7 @@ def main():
     Función principal que inicializa la aplicación del Buscador de Normas Contables.
     """
     print("[INFO] Iniciando aplicación...")
-    check_pdfs_exist()
+    check_pdf_directories_exist()
     
     root = tk.Tk()
     root.title("Buscador de Normas Contables")
