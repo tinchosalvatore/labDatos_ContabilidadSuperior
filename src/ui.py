@@ -5,7 +5,7 @@ import os
 import threading
 import queue
 from datetime import datetime
-from typing import List, Dict
+from typing import List, Dict, Union
 
 from src.search_engine import SearchEngine
 
@@ -18,11 +18,17 @@ class BuscadorNormasUI:
         self.search_engine = SearchEngine()
         self.search_in_progress = False
         self.search_queue = queue.Queue()
+        
+        # Cargar todos los temas al inicio
+        self.all_topics = self.search_engine.load_predefined_topics()
+        self.search_var = tk.StringVar()
+        self.search_var.trace_add("write", self._update_topic_list)
+
         self.setup_ui()
         
     def setup_ui(self):
         self.root.title("🔍 Buscador de Normas Contables (RT vs NIIF-NIC)")
-        self.root.geometry("1200x750")
+        self.root.geometry("1200x800") # Aumentar altura para la lista
         self.root.configure(bg='#f5f5f5')
 
         # --- Estilos ---
@@ -39,19 +45,14 @@ class BuscadorNormasUI:
         main_frame = ttk.Frame(self.root, padding="10")
         main_frame.pack(fill=tk.BOTH, expand=True)
 
-        # --- Sección de Búsqueda ---
-        search_frame = ttk.Frame(main_frame, padding="10")
+        # --- Sección de Búsqueda (Refactorizada) ---
+        search_frame = ttk.Frame(main_frame, padding=(10, 0))
         search_frame.pack(fill=tk.X, pady=5)
         
-        ttk.Label(search_frame, text="Temas principales:").grid(row=0, column=0, padx=5, pady=5, sticky=tk.W)
-        self.topic_var = tk.StringVar()
-        self.topic_combobox = ttk.Combobox(search_frame, textvariable=self.topic_var, values=self.search_engine.load_predefined_topics(), state="readonly", width=40)
-        self.topic_combobox.grid(row=0, column=1, padx=5, pady=5, sticky=tk.EW)
-        self.topic_combobox.set("Selecciona un tema o ingresa uno nuevo")
+        ttk.Label(search_frame, text="Buscar Tema:", font=('Arial', 10, 'bold')).grid(row=0, column=0, padx=5, pady=5, sticky=tk.W)
         
-        ttk.Label(search_frame, text="O ingresa tu tema:").grid(row=1, column=0, padx=5, pady=5, sticky=tk.W)
-        self.search_entry = ttk.Entry(search_frame, width=40, font=('Arial', 10))
-        self.search_entry.grid(row=1, column=1, padx=5, pady=5, sticky=tk.EW)
+        self.search_entry = ttk.Entry(search_frame, textvariable=self.search_var, font=('Arial', 11))
+        self.search_entry.grid(row=1, column=0, columnspan=2, padx=5, pady=5, sticky=tk.EW)
         self.search_entry.bind("<Return>", lambda event: self.on_search())
 
         self.search_button = ttk.Button(search_frame, text="BUSCAR", style='Search.TButton', command=self.on_search)
@@ -61,6 +62,24 @@ class BuscadorNormasUI:
         self.history_button.grid(row=1, column=3, padx=5, pady=5, sticky=tk.E)
         
         search_frame.grid_columnconfigure(1, weight=1)
+
+        # --- Lista de Temas Dinámica ---
+        list_frame = ttk.Frame(main_frame)
+        list_frame.pack(fill=tk.X, expand=False, padx=10, pady=(0, 5))
+
+        self.topic_listbox = tk.Listbox(list_frame, height=8, font=('Arial', 9), bg='white', borderwidth=1, relief="solid")
+        self.topic_listbox.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        scrollbar = ttk.Scrollbar(list_frame, orient="vertical", command=self.topic_listbox.yview)
+        scrollbar.pack(side=tk.RIGHT, fill="y")
+        
+        self.topic_listbox.config(yscrollcommand=scrollbar.set)
+        self.topic_listbox.bind('<<ListboxSelect>>', self._on_listbox_select)
+        self.topic_listbox.bind('<Double-1>', lambda e: self.on_search())
+        
+        # Poblar la lista inicialmente con todos los temas
+        self._update_topic_list()
+
 
         # --- Sección de Resultados ---
         results_frame = ttk.Frame(main_frame, padding="10")
@@ -92,11 +111,55 @@ class BuscadorNormasUI:
         self.setup_text_tags()
 
         # --- Sección de Material Extra ---
-        extra_material_frame = ttk.Frame(main_frame, padding="10")
+        extra_material_frame = ttk.Frame(main_frame, padding=(10,5))
         extra_material_frame.pack(fill=tk.X, pady=5)
         ttk.Label(extra_material_frame, text="📚 Material extra:").pack(side=tk.LEFT, padx=5)
         self.extra_material_label = ttk.Label(extra_material_frame, text="...", font=('Arial', 10, 'bold'))
         self.extra_material_label.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+    def _update_topic_list(self, *args):
+        """Filtra la lista de temas basándose en el texto de la barra de búsqueda."""
+        search_term = self.search_var.get().lower()
+        
+        # Guardar la selección actual si existe
+        current_selection = None
+        if self.topic_listbox.curselection():
+            current_selection = self.topic_listbox.get(self.topic_listbox.curselection())
+
+        self.topic_listbox.delete(0, tk.END)
+        
+        if not search_term:
+            filtered_topics = self.all_topics # Reverted to show all topics initially
+        else:
+            filtered_topics = [topic for topic in self.all_topics if search_term in topic.lower()]
+            
+        for topic in filtered_topics:
+            self.topic_listbox.insert(tk.END, topic)
+
+        # Restaurar la selección si todavía está en la lista
+        if current_selection in filtered_topics:
+            idx = filtered_topics.index(current_selection)
+            self.topic_listbox.selection_set(idx)
+            self.topic_listbox.activate(idx)
+            self.topic_listbox.see(idx)
+
+
+    def _on_listbox_select(self, event):
+        """Cuando se selecciona un tema de la lista, lo pone en la barra de búsqueda."""
+        # Evitar errores si la lista está vacía o el evento se dispara incorrectamente
+        if not self.topic_listbox.curselection():
+            return
+            
+        selected_index = self.topic_listbox.curselection()[0]
+        selected_topic = self.topic_listbox.get(selected_index)
+        
+        # Desactivar temporalmente el `trace` para evitar un bucle infinito
+        # al actualizar programáticamente la variable de búsqueda.
+        trace_info = self.search_var.trace_info()
+        if trace_info:
+            self.search_var.trace_remove("write", trace_info[0][1])
+            self.search_var.set(selected_topic)
+            self.search_var.trace_add("write", self._update_topic_list)
 
     def setup_text_tags(self):
         for text_widget in [self.rt_text, self.niif_nic_text]:
@@ -108,18 +171,19 @@ class BuscadorNormasUI:
             text_widget.tag_bind('button', '<Enter>', lambda e: e.widget.config(cursor="hand2"))
             text_widget.tag_bind('button', '<Leave>', lambda e: e.widget.config(cursor=""))
 
-    def on_search(self):
+    def on_search(self, event=None):
         if self.search_in_progress:
             return
 
-        term = self.topic_var.get() if self.topic_var.get() != "Selecciona un tema o ingresa uno nuevo" else self.search_entry.get().strip()
+        term = self.search_var.get().strip()
         if not term:
-            messagebox.showwarning("Advertencia", "Ingresa un término de búsqueda o selecciona un tema.")
+            messagebox.showwarning("Advertencia", "Ingresa o selecciona un término de búsqueda.")
             return
 
         self.search_in_progress = True
         self.search_button.config(state=tk.DISABLED)
         self.history_button.config(state=tk.DISABLED)
+        self.search_entry.config(state=tk.DISABLED)
 
         for widget in [self.rt_text, self.niif_nic_text]:
             widget.config(state=tk.NORMAL)
@@ -179,6 +243,7 @@ class BuscadorNormasUI:
                     self.search_in_progress = False
                     self.search_button.config(state=tk.NORMAL)
                     self.history_button.config(state=tk.NORMAL)
+                    self.search_entry.config(state=tk.NORMAL)
                     self.check_if_results_found()
                     return # Detener el ciclo after
 
@@ -197,19 +262,54 @@ class BuscadorNormasUI:
              text_widget.delete(1.0, tk.END)
 
         text_widget.config(state=tk.NORMAL)
-        page_num, contexts, matches, pdf_filename = result['page'], result['contexts'], result['matches'], result['pdf_filename']
         
-        text_widget.insert(tk.END, f"Página: {page_num} ({pdf_filename}) ", 'page')
-        text_widget.insert(tk.END, f"({matches} coincidencias)\n", 'matches')
+        page_num = result.get('page')
+        pdf_filename = result.get('pdf_filename')
+        matches = result.get('matches', 1)
+
+        # ---- Lógica Adaptada ----
+        # Unificar 'context' (string, de búsqueda indexada) y 'contexts' (lista, de búsqueda por texto)
+        contexts = result.get('contexts')
+        if not contexts:
+            single_context = result.get('context')
+            if single_context:
+                contexts = [single_context]
+            else:
+                contexts = ["No hay más detalles."]
+
+        # Determinar si es un resultado directo del índice
+        is_indexed_result = "Fuente:" in contexts[0]
+
+        # --- Presentación del Resultado ---
+        if is_indexed_result:
+            text_widget.insert(tk.END, f"Fuente Directa en: {pdf_filename}\n", 'page')
+        else:
+            text_widget.insert(tk.END, f"Página: {page_num} ({pdf_filename}) ", 'page')
+            text_widget.insert(tk.END, f"({matches} coincidencias)\n", 'matches')
         
         for context_str in contexts:
-            text_widget.insert(tk.END, f"  \"{context_str}\"\n", 'context')
+            # Para resultados del índice, el contexto es descriptivo y puede tener saltos de línea
+            if is_indexed_result:
+                formatted_context = context_str.replace('\n', '\n  ')
+                text_widget.insert(tk.END, f"  {formatted_context}\n", 'context')
+            else:
+                text_widget.insert(tk.END, f"  - \"{context_str}\"\n", 'context')
         
-        button_text = "📄 Abrir PDF\n\n"
-        # Incluir pdf_filename en el tag para identificar el archivo correcto al abrir
-        button_tag = f"btn_{column}_{pdf_filename}_{page_num}" 
-        text_widget.insert(tk.END, button_text, ('button', button_tag))
-        text_widget.tag_bind(button_tag, '<Button-1>', lambda e, c=column, f=pdf_filename, p=page_num: self.open_pdf(c, f, p))
+        # Botón para abrir el PDF
+        if pdf_filename: # Siempre mostrar un botón si hay un PDF asociado
+            if page_num == "todo el pdf":
+                button_text = f"📄 Abrir PDF completo\n\n"
+            elif isinstance(page_num, int):
+                button_text = f"📄 Abrir PDF en página {page_num}\n\n"
+            else: # Resultados de búsqueda de respaldo no tienen un page_num directo para el botón
+                button_text = f"📄 Abrir PDF\n\n" # Botón genérico "Abrir PDF"
+            
+            button_tag = f"btn_{column}_{pdf_filename}_{page_num}" 
+            text_widget.insert(tk.END, button_text, ('button', button_tag))
+            text_widget.tag_bind(button_tag, '<Button-1>', 
+                                 lambda e, c=column, f=pdf_filename, p=page_num: self.open_pdf(c, f, p))
+        else:
+             text_widget.insert(tk.END, "\n")
 
         text_widget.config(state=tk.DISABLED)
 
@@ -228,9 +328,10 @@ class BuscadorNormasUI:
         else:
             self.extra_material_label.config(text="❌ No disponible", foreground='red')
 
-    def open_pdf(self, column_key: str, pdf_filename: str, page: int):
+    def open_pdf(self, column_key: str, pdf_filename: str, page: Union[int, str, None]):
         """
-        Abre el PDF en la página específica usando webbrowser, ahora compatible con múltiples archivos.
+        Abre el PDF. Si 'page' es "todo el pdf" o None, abre el PDF completo.
+        Si 'page' es un número, abre en la página específica.
         """
         folder_map = {
             "RT": "rt",
@@ -238,17 +339,20 @@ class BuscadorNormasUI:
         }
         
         target_folder = folder_map.get(column_key)
-        if not target_folder:
-            messagebox.showerror("Error", f"Categoría de PDF desconocida: {column_key}")
-            return
+        # Buscar en las subcarpetas de data/
+        if target_folder:
+            pdf_path = os.path.abspath(os.path.join('data', target_folder, pdf_filename))
+        else: # Si no hay subcarpeta específica, buscar directamente en 'data/'
+            pdf_path = os.path.abspath(os.path.join('data', pdf_filename))
 
-        pdf_path = os.path.abspath(os.path.join('data', target_folder, pdf_filename))
-        
         if not os.path.exists(pdf_path):
-            messagebox.showerror("Error", f"El archivo PDF '{pdf_filename}' no se encontró en '{os.path.join('data', target_folder)}'.")
+            messagebox.showerror("Error", f"El archivo PDF '{pdf_filename}' no se encontró en la ruta esperada: '{os.path.dirname(pdf_path)}'.")
             return
 
-        url = f'file:///{pdf_path.replace(" ", "%20")}#page={page}'
+        url = f'file:///{pdf_path.replace(" ", "%20")}'
+        if isinstance(page, int): # Solo añadir #page=X si es un número de página
+            url += f'#page={page}'
+        
         try:
             webbrowser.open(url)
         except Exception as e:
@@ -269,79 +373,3 @@ class BuscadorNormasUI:
         history_window.geometry("600x400")
         history_window.transient(self.root)
         history_window.grab_set()
-
-        history_frame = ttk.Frame(history_window, padding="10")
-        history_frame.pack(fill=tk.BOTH, expand=True)
-
-        # Configurar layout con grid para asegurar que el botón sea visible
-        history_frame.grid_rowconfigure(0, weight=0) # Para el label "Últimas búsquedas"
-        history_frame.grid_rowconfigure(1, weight=1) # Para la lista que se expande
-        history_frame.grid_rowconfigure(2, weight=0) # Para el botón de limpiar
-        history_frame.grid_columnconfigure(0, weight=1)
-
-        ttk.Label(history_frame, text="Últimas búsquedas:", font=('Arial', 12, 'bold')).grid(row=0, column=0, pady=5, sticky="w")
-
-        list_frame = ttk.Frame(history_frame)
-        list_frame.grid(row=1, column=0, sticky="nsew")
-        
-        history_scroll = scrolledtext.ScrolledText(list_frame, wrap=tk.WORD, font=('Arial', 10), height=15)
-        history_scroll.pack(fill=tk.BOTH, expand=True) # pack está bien aquí dentro de su propio frame
-        
-        history_data = self.search_engine.cache.get_history(limit=20)
-
-        if not history_data:
-            history_scroll.insert(tk.END, "No hay búsquedas en el historial.\n")
-        else:
-            for i, entry in enumerate(history_data):
-                term = entry.get("termino_original", entry.get("termino", "Desconocido"))
-                date_str = datetime.fromisoformat(entry["fecha"]).strftime("%Y-%m-%d %H:%M")
-                
-                display_text = f"[{date_str}] {term}"
-                tag_name = f"hist_{i}"
-                
-                history_scroll.insert(tk.END, f'{display_text}\n', (tag_name, 'history_item'))
-                history_scroll.tag_configure('history_item', foreground='blue', underline=True)
-                history_scroll.tag_bind(tag_name, '<Button-1>', 
-                                        lambda e, t=term, hw=history_window: self._select_history_item(t, hw))
-                history_scroll.tag_bind(tag_name, '<Enter>', lambda e: e.widget.config(cursor="hand2"))
-                history_scroll.tag_bind(tag_name, '<Leave>', lambda e: e.widget.config(cursor=""))
-
-        history_scroll.config(state=tk.DISABLED)
-
-        button_frame = ttk.Frame(history_frame)
-        button_frame.grid(row=2, column=0, pady=10)
-        
-        self.history_window_ref = history_window
-        clear_button = ttk.Button(button_frame, text="Limpiar Historial", 
-                                  style='Clear.TButton', command=self._clear_history_and_refresh)
-        clear_button.pack()
-
-        history_window.protocol("WM_DELETE_WINDOW", lambda: self._on_history_close(history_window))
-
-    def _select_history_item(self, term: str, history_window: tk.Toplevel):
-        """
-        Selecciona un elemento del historial, lo pone en el cuadro de búsqueda y cierra la ventana.
-        """
-        self.search_entry.delete(0, tk.END)
-        self.search_entry.insert(0, term)
-        self.topic_combobox.set("Selecciona un tema o ingresa uno nuevo")
-        self._on_history_close(history_window)
-        self.on_search()
-
-    def _clear_history_and_refresh(self):
-        """
-        Limpia el historial y refresca la ventana de historial.
-        """
-        if messagebox.askyesno("Confirmar", "¿Estás seguro de que quieres limpiar todo el historial de búsquedas?"):
-            self.search_engine.cache.clear_cache()
-            if hasattr(self, 'history_window_ref') and self.history_window_ref and self.history_window_ref.winfo_exists():
-                self.history_window_ref.destroy()
-                self.show_history()
-
-    def _on_history_close(self, history_window: tk.Toplevel):
-        """
-        Maneja el cierre de la ventana de historial.
-        """
-        history_window.grab_release()
-        history_window.destroy()
-        self.history_window_ref = None
