@@ -1,2 +1,3 @@
-PyMuPDF
-rapidfuzz
+PyMuPDF==1.23.8
+rapidfuzz==3.5.2
+pyinstaller==6.8.0
