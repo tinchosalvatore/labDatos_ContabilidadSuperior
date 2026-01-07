@@ -364,12 +364,95 @@ class BuscadorNormasUI:
 
     def show_history(self):
         """
-        Muestra una ventana emergente con el historial de búsquedas.
+        Muestra una ventana emergente con el historial de búsquedas, con un layout y estilo mejorados.
         """
         if self.search_in_progress: return
 
         history_window = tk.Toplevel(self.root)
         history_window.title("Historial de Búsquedas")
-        history_window.geometry("600x400")
+        history_window.minsize(500, 300) # Establecer un tamaño mínimo
+        history_window.resizable(True, True) # Permitir que la ventana sea redimensionable
         history_window.transient(self.root)
         history_window.grab_set()
+
+        # --- Layout Robusto con Frames ---
+        # Marco inferior para el botón
+        bottom_frame = ttk.Frame(history_window, padding=(10, 10))
+        bottom_frame.pack(side=tk.BOTTOM, fill=tk.X)
+        
+        self.history_window_ref = history_window
+        clear_button = ttk.Button(bottom_frame, text="Limpiar Historial", 
+                                  style='Clear.TButton', command=self._clear_history_and_refresh)
+        clear_button.pack()
+
+        # Marco principal para el contenido, se expande para llenar el resto
+        main_frame = ttk.Frame(history_window, padding=(10, 10, 10, 0))
+        main_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+        ttk.Label(main_frame, text="Últimas búsquedas:", font=('Arial', 12, 'bold')).pack(anchor="w", pady=(0, 5))
+
+        history_scroll = scrolledtext.ScrolledText(main_frame, wrap=tk.WORD, font=('Arial', 10), state=tk.DISABLED)
+        history_scroll.pack(fill=tk.BOTH, expand=True, pady=5)
+        
+        # --- Configuración de Estilos (Tags) ---
+        history_scroll.tag_configure('history_date', foreground='#666666') # Color gris para la fecha
+        history_scroll.tag_configure('history_term', foreground='blue', underline=True)
+        history_scroll.tag_bind('history_term', '<Enter>', lambda e: e.widget.config(cursor="hand2"))
+        history_scroll.tag_bind('history_term', '<Leave>', lambda e: e.widget.config(cursor=""))
+
+        # --- Llenado de Datos ---
+        history_data = self.search_engine.cache.get_history(limit=20)
+        history_scroll.config(state=tk.NORMAL)
+        history_scroll.delete(1.0, tk.END)
+
+        if not history_data:
+            history_scroll.insert(tk.END, "No hay búsquedas en el historial.\n")
+        else:
+            for i, entry in enumerate(history_data):
+                term = entry.get("termino", "Desconocido")
+                date_str = datetime.fromisoformat(entry["fecha"]).strftime("%Y-%m-%d %H:%M")
+                
+                unique_tag = f"hist_item_{i}" # Tag único para el binding del clic
+                
+                # Insertar fecha con estilo normal/gris
+                history_scroll.insert(tk.END, f"[{date_str}] ", 'history_date')
+                
+                # Insertar término con estilo de link y binding
+                history_scroll.insert(tk.END, term, ('history_term', unique_tag))
+                history_scroll.insert(tk.END, "\n") # Salto de línea al final
+
+                # Asociar el evento de clic solo al tag único del término
+                history_scroll.tag_bind(unique_tag, '<Button-1>', 
+                                        lambda e, t=term, hw=history_window: self._select_history_item(t, hw))
+
+        history_scroll.config(state=tk.DISABLED)
+
+        history_window.protocol("WM_DELETE_WINDOW", lambda: self._on_history_close(history_window))
+
+    def _select_history_item(self, term: str, history_window: tk.Toplevel):
+        """
+        Selecciona un elemento del historial, lo pone en el cuadro de búsqueda y cierra la ventana.
+        """
+        self.search_var.set(term)
+        self._on_history_close(history_window)
+        self.on_search()
+
+    def _clear_history_and_refresh(self):
+        """
+        Limpia el historial y refresca la ventana de historial.
+        """
+        if messagebox.askyesno("Confirmar", 
+                              "¿Estás seguro de que quieres limpiar todo el historial de búsquedas?",
+                              parent=self.history_window_ref):
+            self.search_engine.cache.clear_cache()
+            if hasattr(self, 'history_window_ref') and self.history_window_ref and self.history_window_ref.winfo_exists():
+                self.history_window_ref.destroy()
+                self.show_history()
+
+    def _on_history_close(self, history_window: tk.Toplevel):
+        """
+        Maneja el cierre de la ventana de historial.
+        """
+        history_window.grab_release()
+        history_window.destroy()
+        self.history_window_ref = None
